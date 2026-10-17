@@ -1,0 +1,37 @@
+@PartFlow.Api_HostAddress = http://localhost:5172
+
+GET {{PartFlow.Api_HostAddress}}/api/parts
+Accept: application/json
+
+###
+
+GET {{PartFlow.Api_HostAddress}}/api/parts/1
+Accept: application/json
+
+###
+
+POST {{PartFlow.Api_HostAddress}}/api/parts
+Content-Type: application/json
+
+{
+  "partNumber": "PF-2002",
+  "name": "Steel Bracket",
+  "description": "Mounting bracket for assembly line fixtures",
+  "status": "Draft"
+}
+
+###
+
+PUT {{PartFlow.Api_HostAddress}}/api/parts/1
+Content-Type: application/json
+
+{
+  "partNumber": "PF-1001",
+  "name": "Hydraulic Fitting",
+  "description": "Updated description",
+  "status": "Obsolete"
+}
+
+###
+
+DELETE {{PartFlow.Api_HostAddress}}/api/parts/1
