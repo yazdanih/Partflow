@@ -35,8 +35,21 @@ public class PartsController : ControllerBase
     [HttpPut("{id:int}")]
     public ActionResult<Part> Update(int id, PartRequest request)
     {
-        var part = _store.Update(id, request);
-        return part is null ? NotFound() : Ok(part);
+        try
+        {
+            var part = _store.Update(id, request);
+
+            if (part is null)
+            {
+                return NotFound();
+            }
+
+            return Ok(part);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
     }
 
     [HttpDelete("{id:int}")]
