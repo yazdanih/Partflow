@@ -1,0 +1,13 @@
+**/bin/
+**/obj/
+**/TestResults/
+.git/
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+.env
+.env.*
+!.env.example
+PartFlow.Tests/
