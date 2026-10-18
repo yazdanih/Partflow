@@ -1,10 +1,13 @@
 using System.Text.Json.Serialization;
-using PartFlow.Api.Services;
+using Microsoft.EntityFrameworkCore;
+using PartFlow.Api.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddDbContext<PartFlowDbContext>(options =>
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("PartFlowDb")));
 builder.Services.AddOpenApi();
-builder.Services.AddSingleton<InMemoryPartStore>();
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {

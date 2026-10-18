@@ -40,7 +40,7 @@ public class InMemoryPartStore
             return null;
         }
 
-        if (!IsValidTransition(existingPart.Status, request.Status))
+        if (!PartLifecycle.CanTransition(existingPart.Status, request.Status))
         {
             throw new InvalidOperationException(
                 $"Invalid lifecycle transition from {existingPart.Status} to {request.Status}.");
@@ -62,14 +62,4 @@ public class InMemoryPartStore
         Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
         Status = request.Status
     };
-
-    private static bool IsValidTransition( PartStatus current,
-    PartStatus next)
-    {
-        return current == next ||
-            (current == PartStatus.Draft &&
-                next == PartStatus.Active) ||
-            (current == PartStatus.Active &&
-                next == PartStatus.Obsolete);
-    }
 }

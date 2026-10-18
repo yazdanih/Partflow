@@ -1,6 +1,8 @@
+
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using PartFlow.Api.Data;
 using PartFlow.Api.Models;
-using PartFlow.Api.Services;
 
 namespace PartFlow.Api.Controllers;
 
@@ -8,51 +10,90 @@ namespace PartFlow.Api.Controllers;
 [Route("api/[controller]")]
 public class PartsController : ControllerBase
 {
-    private readonly InMemoryPartStore _store;
+    private readonly PartFlowDbContext _db;
 
-    public PartsController(InMemoryPartStore store)
+    public PartsController(PartFlowDbContext db)
     {
-        _store = store;
+        _db = db;
     }
 
     [HttpGet]
-    public ActionResult<IReadOnlyList<Part>> GetAll() => Ok(_store.GetAll());
+    public async Task<ActionResult<List<Part>>> GetAll()
+    {
+        var parts = await _db.Parts
+            .AsNoTracking()
+            .OrderBy(p => p.Id)
+            .ToListAsync();
+
+        return Ok(parts);
+    }
 
     [HttpGet("{id:int}")]
-    public ActionResult<Part> GetById(int id)
+    public async Task<ActionResult<Part>> GetById(int id)
     {
-        var part = _store.GetById(id);
+        var part = await _db.Parts.FindAsync(id);
+
         return part is null ? NotFound() : Ok(part);
     }
 
     [HttpPost]
-    public ActionResult<Part> Create(PartRequest request)
+    public async Task<ActionResult<Part>> Create(PartRequest request)
     {
-        var part = _store.Add(request);
-        return CreatedAtAction(nameof(GetById), new { id = part.Id }, part);
+        var part = new Part
+        {
+            PartNumber = request.PartNumber.Trim(),
+            Name = request.Name.Trim(),
+            Description = request.Description,
+            Status = request.Status
+        };
+
+        _db.Parts.Add(part);
+        await _db.SaveChangesAsync();
+
+        return CreatedAtAction(
+            nameof(GetById),
+            new { id = part.Id },
+            part);
     }
 
     [HttpPut("{id:int}")]
-    public ActionResult<Part> Update(int id, PartRequest request)
+    public async Task<ActionResult<Part>> Update(
+        int id, PartRequest request)
     {
-        try
-        {
-            var part = _store.Update(id, request);
+        var part = await _db.Parts.FindAsync(id);
 
-            if (part is null)
+        if (part is null)
+            return NotFound();
+
+        if (!PartLifecycle.CanTransition(part.Status, request.Status))
+        {
+            return BadRequest(new
             {
-                return NotFound();
-            }
+                error = $"Invalid lifecycle transition from {part.Status} to {request.Status}."
+            });
+        }
 
-            return Ok(part);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
+        part.PartNumber = request.PartNumber.Trim();
+        part.Name = request.Name.Trim();
+        part.Description = request.Description;
+        part.Status = request.Status;
+
+        await _db.SaveChangesAsync();
+
+        return Ok(part);
     }
 
     [HttpDelete("{id:int}")]
-    public IActionResult Delete(int id) =>
-        _store.Delete(id) ? NoContent() : NotFound();
+    public async Task<IActionResult> Delete(int id)
+    {
+        var part = await _db.Parts.FindAsync(id);
+
+        if (part is null)
+            return NotFound();
+
+        _db.Parts.Remove(part);
+        await _db.SaveChangesAsync();
+
+        return NoContent();
+    }
 }
