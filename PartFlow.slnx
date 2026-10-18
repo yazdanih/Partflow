@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="PartFlow.Api/PartFlow.Api.csproj" />
+  <Project Path="PartFlow.Tests/PartFlow.Tests.csproj" />
+</Solution>
