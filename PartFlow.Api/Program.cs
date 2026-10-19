@@ -16,6 +16,14 @@ builder.Services.AddControllers()
 
 var app = builder.Build();
 
+await using (var scope = app.Services.CreateAsyncScope())
+{
+    var dbContext = scope.ServiceProvider
+        .GetRequiredService<PartFlowDbContext>();
+
+    await dbContext.Database.MigrateAsync();
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
