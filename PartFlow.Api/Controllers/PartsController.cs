@@ -1,6 +1,7 @@
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using PartFlow.Api.Data;
 using PartFlow.Api.Models;
 
@@ -10,6 +11,7 @@ namespace PartFlow.Api.Controllers;
 [Route("api/[controller]")]
 public class PartsController : ControllerBase
 {
+    private const string PartNumberUniqueIndex = "IX_Parts_PartNumber";
     private readonly PartFlowDbContext _db;
 
     public PartsController(PartFlowDbContext db)
@@ -48,7 +50,16 @@ public class PartsController : ControllerBase
         };
 
         _db.Parts.Add(part);
-        await _db.SaveChangesAsync();
+
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateException exception)
+            when (IsPartNumberConflict(exception))
+        {
+            return PartNumberConflict();
+        }
 
         return CreatedAtAction(
             nameof(GetById),
@@ -78,7 +89,15 @@ public class PartsController : ControllerBase
         part.Description = request.Description;
         part.Status = request.Status;
 
-        await _db.SaveChangesAsync();
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateException exception)
+            when (IsPartNumberConflict(exception))
+        {
+            return PartNumberConflict();
+        }
 
         return Ok(part);
     }
@@ -95,5 +114,23 @@ public class PartsController : ControllerBase
         await _db.SaveChangesAsync();
 
         return NoContent();
+    }
+
+    private static bool IsPartNumberConflict(
+        DbUpdateException exception)
+    {
+        return exception.InnerException is PostgresException
+        {
+            SqlState: PostgresErrorCodes.UniqueViolation,
+            ConstraintName: PartNumberUniqueIndex
+        };
+    }
+
+    private ConflictObjectResult PartNumberConflict()
+    {
+        return Conflict(new
+        {
+            error = "A part with this PartNumber already exists."
+        });
     }
 }
