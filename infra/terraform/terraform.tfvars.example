@@ -1,0 +1,9 @@
+project_name     = "partflow"
+environment      = "dev"
+location         = "swedencentral"
+aks_node_count   = 1
+aks_node_vm_size = "Standard_B2s"
+
+tags = {
+  Purpose = "Portfolio"
+}
